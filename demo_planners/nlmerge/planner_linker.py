@@ -3,7 +3,6 @@ import json
 import sys
 from typing import List, Dict, Any, Callable, Optional
 
-###### Blue
 from blue.operators.nl2llm_operator import *
 from blue.operators.nl2sql_operator import *
 from blue.operators.join_operator import *
@@ -153,47 +152,47 @@ example_old={'data_scientist_jobs':{
         {
           "TASK": "TOOL INPUT TO ATTRIBUTES",
             "REASONING": "We need to convert the attributes to the correct dictionary format. We need the attribute question. We make sure to give the correct names as shown in data. We will give it the value ``Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'"''. For the protocol, we use postgres. For database, we use postgres. For collection, we use public. The context can be empty as we don't have additional details to provide.",
-            "OUTPUT": "NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})# in find locations that are in the Bay Area#"
+            "OUTPUT": "NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})# in find locations that are in the Bay Area#"
         },
         {
             "TASK": "TOOL CHECK",
             "REASONING": "What is the correct tool to use? We have data from NL2SQL, and we want to transform it to determine which locations are in the Bay Area. We perform a row-wise LLM with ROWWISE_NL2LLM. Why is this tool appropriate for the task? ROWWISE_NL2LLM can evaluate each location row to check if it belongs to the Bay Area, adding a True/False column for filtering.",
-            "OUTPUT": "ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})], #Is the location in the Bay Area? Add a column with True/False#)"
+            "OUTPUT": "ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})], #Is the location in the Bay Area? Add a column with True/False#)"
         },
         {
             "TASK": "TOOL INPUT CHECK",
             "REASONING": "Can the tool operate given what is provided to it? Yes - ROWWISE_NL2LLM operates directly on the NL2SQL result, which contains job titles and locations. Is it usable without additional operations? Yes, the NL2SQL output provides the necessary data (job titles and locations) for ROWWISE_NL2LLM to process each row.",
-            "OUTPUT": "ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})], #Is the location in the Bay Area? Add a column with True/False#)"
+            "OUTPUT": "ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})], #Is the location in the Bay Area? Add a column with True/False#)"
         },
         {
           "TASK": "TOOL INPUT TO ATTRIBUTES",
             "REASONING": "We need to convert the attributes to the correct dictionary format. We give as query 'is the location in the bay area?' The context can be empty as we don't have additional details to provide. For attr_names, we give the list ['isInBayArea'] as we want to add a column with True/False indicating if the location is in the Bay Area.",
-            "OUTPUT": "ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})], {'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})"
+            "OUTPUT": "ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})], {'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})"
         },
         {
             "TASK": "USER INTENT ALIGNMENT",
             "REASONING": "Are we answering the user's original question? We are finding jobs for data scientists and specifying if their locations are in the Bay Area or not. Are any additional steps needed to fully address the intent? Yes, we need to filter the results to only include jobs that are in the Bay Area to fully align with the user's request.",
-            "OUTPUT": "ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']}) # and keep the one in bay area#"
+            "OUTPUT": "ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']}) # and keep the one in bay area#"
         },
         {
             "TASK": "TOOL CHECK",
             "REASONING": "What is the correct tool to use? We have data from ROWWISE_NL2LLM with a True/False column indicating Bay Area locations, and we want to filter for jobs where the location is in the Bay Area. We perform a SELECT operation. Why is this tool appropriate for the task? SELECT can filter rows based on the True/False column to keep only the relevant jobs.",
-            "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})],#in bay area is True#)"
+            "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})],#in bay area is True#)"
         },
         {
             "TASK": "TOOL INPUT CHECK",
             "REASONING": "Can the tool operate given what is provided to it? Yes - SELECT operates directly on the ROWWISE_NL2LLM result, which includes the True/False column for filtering. Is it usable without additional operations? Yes, the data is in the correct format for SELECT to filter based on the condition.",
-            "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})],#in bay area is True#)"
+            "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})],#in bay area is True#)"
         },
         {
           "TASK": "TOOL INPUT TO ATTRIBUTES",
             "REASONING": "We need to convert the attributes to the correct dictionary format. For operand_key, we give isInBayArea as it is the column we want to filter on. For operand, we use = as we want to select rows where the value is True. For operand_val, we use True as we want to keep rows where the location is in the Bay Area. approximate_match and eps are not needed for this boolean comparison, so we can leave them as default (False and 0.0 respectively)."
-            "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})],{'query':'is the location in the bay area?','context':'','attr_names':['in bay area']})],{'operand_key':'isInBayArea','operand':'=','operand_val':True,'approximate_match':False,'eps':0.0})"
+            "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})],{'query':'is the location in the bay area?','context':'','attr_names':['in bay area']})],{'operand_key':'isInBayArea','operand':'=','operand_val':True,'approximate_match':False,'eps':0.0})"
         },
         {
             "TASK": "USER INTENT ALIGNMENT",
             "REASONING": "Are we answering the user's original question? Yes, we are finding jobs for data scientists and filtering the results to only include those in the Bay Area. Are any additional steps needed to fully address the intent? No, the SELECT operation ensures we only return jobs in the Bay Area, fully addressing the user's intent.",
-            "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})],{'query':'is the location in the bay area?','context':'','attr_names':['in bay area']})],{'operand_key':'isInBayArea','operand':'=','operand_val':True,'approximate_match':False,'eps':0.0})"
+            "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})],{'query':'is the location in the bay area?','context':'','attr_names':['in bay area']})],{'operand_key':'isInBayArea','operand':'=','operand_val':True,'approximate_match':False,'eps':0.0})"
         }
     ]    """,frozenset(['SMARTNL2SQL','ROWWISE_NL2LLM']):"""[{
         {
@@ -300,32 +299,32 @@ example_new = {'data_scientist_jobs':{
         {
           "TASK": "TOOL INPUT TO ATTRIBUTES",
           "REASONING": "Convert NL2SQL inputs to dictionary format. We need the attribute 'question' as a SQL-like query: 'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\''. For 'protocol', 'database', 'collection': 'postgres', 'postgres', 'public'. Context is empty.",
-          "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})],#Is the location in the Bay Area? Add a column with True/False#)],#keep where in bay area is True#)"
+          "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})],#Is the location in the Bay Area? Add a column with True/False#)],#keep where in bay area is True#)"
         },
         {
           "TASK": "TOOL INPUT CHECK",
           "REASONING": "For ROWWISE_NL2LLM: Can the tool operate given what is provided to it? Yes, it takes the output from NL2SQL as input data. Is it usable without additional operations? Yes, the data will have locations to evaluate.",
-          "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})],#Is the location in the Bay Area? Add a column with True/False#)],#keep where in bay area is True#)"
+          "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})],#Is the location in the Bay Area? Add a column with True/False#)],#keep where in bay area is True#)"
         },
         {
           "TASK": "TOOL INPUT TO ATTRIBUTES",
           "REASONING": "Convert ROWWISE_NL2LLM inputs to dictionary. 'query': 'is the location in the bay area?', 'context': '', 'attr_names': ['isInBayArea'].",
-          "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})],#keep where in bay area is True#)"
+          "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})],#keep where in bay area is True#)"
         },
         {
           "TASK": "TOOL INPUT CHECK",
           "REASONING": "For SELECT: Can the tool operate given what is provided to it? Yes, it takes the output from ROWWISE_NL2LLM, which includes the new column. Is it usable without additional operations? Yes, we can filter on the True/False column.",
-          "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})],#keep where in bay area is True#)"
+          "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})],#keep where in bay area is True#)"
         },
         {
           "TASK": "TOOL INPUT TO ATTRIBUTES",
           "REASONING": "Convert SELECT inputs to dictionary. 'operand_key': 'isInBayArea', 'operand': '=', 'operand_val': True, 'approximate_match': False, 'eps': 0.0.",
-          "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})],{'operand_key':'isInBayArea','operand':'=','operand_val':True,'approximate_match':False,'eps':0.0})"
+          "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})],{'operand_key':'isInBayArea','operand':'=','operand_val':True,'approximate_match':False,'eps':0.0})"
         },
         {
           "TASK": "USER INTENT ALIGNMENT",
           "REASONING": "Are we answering the user's original question? Yes, by querying data scientist jobs, evaluating locations for Bay Area, and filtering accordingly, we provide available jobs in the specified area without losing any part of the query. Are any additional steps needed to fully address the intent? No, this nested structure covers all aspects.",
-          "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'postgres_example'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})],{'operand_key':'isInBayArea','operand':'=','operand_val':True,'approximate_match':False,'eps':0.0})"
+          "OUTPUT": "SELECT([ROWWISE_NL2LLM([NL2SQL([[]],{'question':'Select \\\\'unique_job_id\\\\', \\\\'job_title\\\\', \\\\'location\\\\' from \\\\'jobs\\\\' where \\\\'job_title\\\\' like \\\\'%Data Scientist%\\\\'', 'protocol':'postgres','database':'postgres','collection':'public','source':'default'})],{'query':'is the location in the bay area?','context':'','attr_names':['isInBayArea']})],{'operand_key':'isInBayArea','operand':'=','operand_val':True,'approximate_match':False,'eps':0.0})"
         }
     ]    """,frozenset(['SMARTNL2SQL','ROWWISE_NL2LLM']):"""[{
         {
@@ -447,13 +446,3 @@ def get_plan(task, error_mitigation='', special_task={}, method='old',tools_list
 def get_plan_text(plan):
     return '\n'.join([f"{elt['TASK']}({elt['OUTPUT']})" for elt in plan[0]])
 
-if __name__ == "__main__":
-    # Example usage with old method
-    plan_old = get_plan("Are jobs requiring a study field different from the company’s main purpose (e.g., a job in a tech company requiring a non-tech study field) typically paid more or less than jobs from companies in the same field?", method='old')
-    print("Old Method Plan:")
-    print(json.dumps(plan_old, indent=2))
-    
-    # Example usage with new method
-    plan_new = get_plan("Are jobs requiring a study field different from the company’s main purpose (e.g., a job in a tech company requiring a non-tech study field) typically paid more or less than jobs from companies in the same field?", method='new')
-    print("\nNew Method Plan:")
-    print(json.dumps(plan_new, indent=2))

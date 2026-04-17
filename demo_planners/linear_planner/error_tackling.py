@@ -1,33 +1,6 @@
 
 import json
 from demo_planners.utils import *
-
-#TOADD 090225: On failure, there could be an agent that takes all output and say do you know why it failed here ? What need to be changed??
-
-
-#TO ADD 090225: THERE can be instant autocheck of plan: Plan that make no sense becasue of juxtaposition of operators.  Or because at least one of the operator needed for a tool is not there.
-#These lists could be incremented y LLM
-#But for instance it could be to raise an error "Why is there a SELECT just after a NL2SQL?", "How can there be a join but a minimum of retrieving two sources of information is not there?", "How can the last step be NL2SQL if there are more than one step?"
-
-#and similarly, once at least 3 rounds of refine, we can laucnh another parallel task that checks if we are repeating the same errors. If it is detected that yes, it can propose another track
-
-
-###ONE of the OP could be:
-
-#Look at the operators definitions and comment. Have they been followed rigourously in this plan?
-
-
-
-### For automatic error handling
-
-#It could be kind of a tree.
-
-
-#Also, it could be that we derive from the query similar query
-#From there we can give few shots 
-# But even better, we can see errors that were frequently seen for this steps
-#Get a solution summary from a LLM and add it to the prompt
-# More than query wise, it could also be operator wise. For operator get a list of recommended corrections
 #And because it can be too lengthy, have one small part for the initial prompt
 #And one longer for the refinement prompt to correct errors, where we can put only the relevant operators
 
@@ -136,18 +109,14 @@ def summarize_issue_and_tackling():
 
 
 def detect_issue(mitigator_result):
-    #TODO : I fear the issue description might be a little bit too artificial presented as is to help in the next round of planning, but let's find out
     summary_issue=[]
     presence_issue=False
-    # print(mitigator_result)
     for elt in mitigator_result[0]:
         for key in [x for x in list(elt.keys()) if '_TRUEORFALSE' in x]:
             if (type(elt[key])==str and elt[key].lower()=='true') or elt[key]==True:
                 summary_issue+=[elt["ISSUE_SUMMARY"]]
                 presence_issue=True
                 break
-            elif not ((type(elt[key])==str and elt[key].lower()=='false') or elt[key]==False):
-                print('mmmhh')
     return presence_issue,json.dumps(summary_issue,indent=2)
 
 
@@ -199,7 +168,7 @@ def correct_plan_idea(current_output):
     return standard_NL2LLM_agent(prompt,["ORIGINAL_STEP_NAME","ORIGINAL_STEP_DESCRIPTION","ISSUE_TOOL_REQUIREMENT_JUSTIFICATION","ISSUE_TOOL_REQUIREMENT_TRUEORFALSE","ISSUE_PLAN_LOGIC_JUSTIFICATION","ISSUE_PLAN_LOGIC_TRUEORFALSE","ISSUE_MISSING_PIECES_JUSTIFICATION","ISSUE_MISSING_PIECES_TRUEORFALSE","ISSUE_FINAL_GOAL_JUSTIFICATION","ISSUE_FINAL_GOAL_TRUEORFALSE","ISSUE_SUMMARY"])
 
 
-#######EXECUTION
+# Execution
 
 
 def correct_execution_error(current_output):
@@ -211,7 +180,7 @@ def correct_execution_error(current_output):
 
 
 
-####POST CHECK
+# Post-run checks
 
 def in_run_execution_check(current_output):
 
@@ -287,19 +256,12 @@ def in_run_execution_check(current_output):
     overall_results=current_output['overall_results']
     steps_linking=current_output['steps_linking']
     """check correctness after each step, useful to stop as early as necessary"""
-    # f=open('currentoutputdebug.json','w')
-    # json.dump(current_output,f, indent=4)
-    # f.close()
-    # logging.critical('DEBUG FILE DONE')
     step_output=recursive_limit_for_dico(overall_results[step_nb]['output'], number_to_display=10)
     step_linking=str(steps_linking[step_nb])
-    #TODO: why is stepsresults a list and not a dict
     if step_output==[] or step_output==[[]]:#len(step_output)==0 or len(step_output[0])==0:
-        # logging.critical('In run check : Debug : empty input')
         prompt=prompt_inrun_empty_check
         list_ret=["ORIGINAL_STEP_NAME","ORIGINAL_STEP_DESCRIPTION","EMPTY_RESULT_JUSTIFICATION","EMPTY_RESULT_TRUEORFALSE","ISSUE_SUMMARY"]
     else:
-        # logging.critical('In run check : Debug : NOT empty input')
         prompt=prompt_inrun_check
         list_ret=["ORIGINAL_STEP_NAME","ORIGINAL_STEP_DESCRIPTION","ISSUE_NEXT_STEPS_USABILITY_JUSTIFICATION","ISSUE_NEXT_STEPS_USABILITY_TRUEORFALSE","ISSUE_EXPECTED_OUTPUT_JUSTIFICATION","ISSUE_EXPECTED_OUTPUT_TRUEORFALSE","ISSUE_OTHER_LEVEL_JUSTIFICATION","ISSUE_OTHER_LEVEL_TRUEORFALSE","ISSUE_SUMMARY"]
     task=current_output['task']
@@ -451,7 +413,7 @@ def correct_tools_common_issue(current_output):
     - ERROR_MITIGATION: Summarize the needed action to mitigate the error, otherwise leave empty
     - ISSUE_SUMMARY: Provide a brief summary of the issues detected in this step, if any. If no issue was detected, write "". Give all details to be able to correct the issue at next iteration."""
 
-    #TODO: implement
+    return None
 
 
 
@@ -490,8 +452,6 @@ def post_execution_check(current_output):
     - RESTART_AT_STEP_NB: if issue comes from linking, specify from which step the linking should be restarted. Else, put -1
     - ISSUE_SUMMARY: Provide a brief summary of the issues detected in this step, if any. If no issue was detected, write "". Give all details to be able to correct the issue at next iteration. If the issue comes from a specific step, mention it."""
 
-    
-    logging.critical('POST EXECUTION CHECK: DEBUG current output: '+str(current_output))
     task = current_output['task']
     plan = current_output['plan']
     linking_steps = current_output['steps_linking']
@@ -539,16 +499,11 @@ def post_execution_check(current_output):
     return ret_dico
 
 
-#######GENERAL
-mitigators_execution=[['execution_error',correct_execution_error]] #I guess we will only have one so that list might be useless, but I prefer to make it uniform with the others
-mitigators_plan=[['general_plan_logic',correct_plan_idea]] ## ADD THE prompt_common_operator_errors
-mitigators_linking=[]#I removed them for now because this one is very enthusiast in identifying error, I need to refine it #TODO. At least it reached a good plan... but it keeps wanting to refine it
-# mitigators_linking=[['general_linking_logic',correct_linking_logic]] #WE SHOULD ALSO CHECK FOR DUPLICATE KEYS : FOR INSTANCE FOR JOIN IT HAPPENS BECAUSE IT DIDNT DO THE APPEND
-#SOLUTION CAN BE TO RULE BASE CREATE ONE, OR TO AUTO STATE ERROR WHEN WE DETECT DUPLICATE KEYS
-#TODO: WE SHOULD ALSO BE ABLE TO STATE IN THE MITIGATOR AT WHAT LEVEL THE ISSUE NEEDS TO BE ADRESSED FOR THE NEXT STEP, IT IS NOT BECAUSE DETECTED BY META OPERATOR THAT THE PROBLEM IS AT THIS LEVEL
-
-mitigators_results_inrun=[]#['in_run_execution_check',in_run_execution_check]]#for now, very general so only one, but we never know
-mitigators_results_post=[['post_execution_check',post_execution_check]]#for now, very general so only one, but we never know
+mitigators_execution=[['execution_error',correct_execution_error]]
+mitigators_plan=[['general_plan_logic',correct_plan_idea]]
+mitigators_linking=[]
+mitigators_results_inrun=[]
+mitigators_results_post=[['post_execution_check',post_execution_check]]
 
 
 
@@ -563,184 +518,3 @@ mitigators_results_post=[['post_execution_check',post_execution_check]]#for now,
 
 
 
-# In correct_plan_idea:
-#     """
-#     test1:
-#     Does this plan make sense?
-# Given the specific characteristics of each used operator, have they been followed rigourously?
-# Is any operator misplaced or requesting another step here that has not been prepared?
-
-# You should structure your output as a JSON containing a list of dictionaries, one dictionary per step item. For each of this step item, provide the following keys:
-# - ORIGINAL_STEP_NAME: repeat the name of the tool used
-# - ORIGINAL_STEP_DESCRIPTION: repeat the description given to the tool at this step
-# - ISSUE_TOOL_REQUIREMENT_JUSTIFICATION: think about the tool requirement. Is everything available at this stage for the tool to operate? Is everything needed for the tool included in one of the step predecessing the tool?include in your thinking for this step the tool requirement.
-# - ISSUE_TOOL_REQUIREMENT_TRUEORFALSE: Answer True if this problem is present, False otherwise
-# - ISSUE_PLAN_LOGIC_JUSTIFICATION: Are there any step that direct the answer in a different direction than what the user is expecting? Is the sequence of operator logical?
-# - ISSUE_PLAN_LOGIC_TRUEORFALSE: Answer True if this problem is present, False otherwise
-# - ISSUE_MISSING_PIECES_JUSTIFICATION: include in your thinking for this step the tool requirement.  Also think about the data structure. Are we asking one of the tool to rely on a data that is not available neither from database nor from a previous step?
-# - ISSUE_MISSING_PIECES_TRUEORFALSE: Answer True if this problem is present, False otherwise
-# - ISSUE_FINAL_GOAL_JUSTIFICATION: Is the final step aligned with what the user asked for? 
-# - ISSUE_FINAL_GOAL_TRUEORFALSE: Answer True if this problem is present, False otherwise
-
-# [
-#     [
-#         {
-#             "ORIGINAL_STEP_NAME": "START",
-#             "ORIGINAL_STEP_DESCRIPTION": "",
-#             "ISSUE_TOOL_REQUIREMENT_JUSTIFICATION": "This is the initial step, so no tool requirements are applicable.",
-#             "ISSUE_TOOL_REQUIREMENT_TRUEORFALSE": false,
-#             "ISSUE_PLAN_LOGIC_JUSTIFICATION": "The plan starts correctly with an initial step.",
-#             "ISSUE_PLAN_LOGIC_TRUEORFALSE": false,
-#             "ISSUE_MISSING_PIECES_JUSTIFICATION": "No data or operations are required at this step.",
-#             "ISSUE_MISSING_PIECES_TRUEORFALSE": false,
-#             "ISSUE_FINAL_GOAL_JUSTIFICATION": "This step does not contribute to the final goal directly.",
-#             "ISSUE_FINAL_GOAL_TRUEORFALSE": false
-#         },
-#         {
-#             "ORIGINAL_STEP_NAME": "NL2SQL",
-#             "ORIGINAL_STEP_DESCRIPTION": "Select 'short_job_title' from 'frequent_skills_by_title' where 'skill_required' includes programming languages like 'Python', 'Java', 'C++', 'JavaScript', etc.",
-#             "ISSUE_TOOL_REQUIREMENT_JUSTIFICATION": "The tool requires a database to query from, which is available. However, the query is not directly aligned with the task of finding maximum salary.",
-#             "ISSUE_TOOL_REQUIREMENT_TRUEORFALSE": false,
-#             "ISSUE_PLAN_LOGIC_JUSTIFICATION": "The step is logical in identifying job titles requiring programming skills, which is a necessary step towards finding the maximum salary.",
-#             "ISSUE_PLAN_LOGIC_TRUEORFALSE": false,
-#             "ISSUE_MISSING_PIECES_JUSTIFICATION": "The data required for this query is available in the 'frequent_skills_by_title' table.",
-#             "ISSUE_MISSING_PIECES_TRUEORFALSE": false,
-#             "ISSUE_FINAL_GOAL_JUSTIFICATION": "This step is indirectly aligned with the final goal as it identifies relevant job titles.",
-#             "ISSUE_FINAL_GOAL_TRUEORFALSE": false
-#         },
-#         {
-#             "ORIGINAL_STEP_NAME": "NL2SQL",
-#             "ORIGINAL_STEP_DESCRIPTION": "Select 'max_salary' from 'jobs' where 'short_job_title' is in the list of job titles obtained from the previous step.",
-#             "ISSUE_TOOL_REQUIREMENT_JUSTIFICATION": "The tool requires a database to query from, which is available. However, it assumes the output from the previous step can be directly used, which is not possible with NL2SQL.",
-#             "ISSUE_TOOL_REQUIREMENT_TRUEORFALSE": true,
-#             "ISSUE_PLAN_LOGIC_JUSTIFICATION": "The step logically follows from the previous step to find the maximum salary for the identified job titles.",
-#             "ISSUE_PLAN_LOGIC_TRUEORFALSE": false,
-#             "ISSUE_MISSING_PIECES_JUSTIFICATION": "The tool cannot use the output from the previous step directly as input, which is a missing piece in the plan.",
-#             "ISSUE_MISSING_PIECES_TRUEORFALSE": true,
-#             "ISSUE_FINAL_GOAL_JUSTIFICATION": "This step is aligned with the final goal of finding the maximum salary.",
-#             "ISSUE_FINAL_GOAL_TRUEORFALSE": false
-#         }
-#     ]
-# ]
-# <class 'list'>
-# ====================OUTPUT END============================
-# [
-#     {
-#         "next_direction": "",
-#         "result": "",
-#         "path_followed": "",
-#         "issue": "",
-#         "plan": [
-#             {
-#                 "name": "START",
-#                 "description": ""
-#             },
-#             {
-#                 "name": "NL2SQL",
-#                 "description": "Select 'short_job_title' from 'frequent_skills_by_title' where 'skill_required' includes programming languages like 'Python', 'Java', 'C++', 'JavaScript', etc."
-#             },
-#             {
-#                 "name": "NL2SQL",
-#                 "description": "Select 'max_salary' from 'jobs' where 'short_job_title' is in the list of job titles obtained from the previous step."
-#             }
-#         ],
-#         "operators_linking": {
-#             "steps_linking": [
-#                 [
-#                     {
-#                         "INPUT_JUSTIFICATION": "The task requires a SQL query to select job titles based on programming language skills.",
-#                         "LINKING_RELEVANCE": "The task specifies the need to query job titles from a table where skills include programming languages. This is the starting point for the query.",
-#                         "INPUT_SOURCE": "$STEP0$->output",
-#                         "INPUT_KEY": "input"
-#                     },
-#                     {
-#                         "INPUT_JUSTIFICATION": "The task requires a SQL query to select job titles based on programming language skills.",
-#                         "LINKING_RELEVANCE": "The task specifies the need to query job titles from a table where skills include programming languages. This is the starting point for the query.",
-#                         "INPUT_SOURCE": "#Select 'short_job_title' from 'frequent_skills_by_title' where 'skill_required' includes programming languages like 'Python', 'Java', 'C++', 'JavaScript', etc.#",
-#                         "INPUT_KEY": "attributes->question"
-#                     },
-#                     {
-#                         "INPUT_JUSTIFICATION": "The task requires using a SQL protocol to execute the query.",
-#                         "LINKING_RELEVANCE": "The SQL protocol is necessary to execute the query on the database.",
-#                         "INPUT_SOURCE": "#postgres#",
-#                         "INPUT_KEY": "attributes->protocol"
-#                     },
-#                     {
-#                         "INPUT_JUSTIFICATION": "The task requires using a specific database to execute the query.",
-#                         "LINKING_RELEVANCE": "The database is necessary to execute the query and retrieve the required information.",
-#                         "INPUT_SOURCE": "#postgres#",
-#                         "INPUT_KEY": "attributes->database"
-#                     },
-#                     {
-#                         "INPUT_JUSTIFICATION": "The task requires using a specific collection to execute the query.",
-#                         "LINKING_RELEVANCE": "The collection is necessary to execute the query and retrieve the required information.",
-#                         "INPUT_SOURCE": "#public#",
-#                         "INPUT_KEY": "attributes->collection"
-#                     }
-#                 ],
-#                 [
-#                     {
-#                         "INPUT_JUSTIFICATION": "The output from step 1 contains the list of job titles that require proficiency in programming languages, which is needed for the next query.",
-#                         "LINKING_RELEVANCE": "The task requires finding the maximum salary for job titles that require programming language skills. The output from step 1 provides these job titles, which are necessary for the query in step 2.",
-#                         "INPUT_SOURCE": "$STEP1$->output",
-#                         "INPUT_KEY": "input"
-#                     },
-#                     {
-#                         "INPUT_JUSTIFICATION": "The task requires a SQL query to select the maximum salary from the jobs table for the relevant job titles.",
-#                         "LINKING_RELEVANCE": "The task specifies the need to query the maximum salary for job titles obtained from the previous step. This is the main objective of the query in step 2.",
-#                         "INPUT_SOURCE": "#Select 'max_salary' from 'jobs' where 'short_job_title' is in the list of job titles obtained from the previous step.#",
-#                         "INPUT_KEY": "attributes->question"
-#                     },
-#                     {
-#                         "INPUT_JUSTIFICATION": "The task requires using a SQL protocol to execute the query.",
-#                         "LINKING_RELEVANCE": "The SQL protocol is necessary to execute the query on the database.",
-#                         "INPUT_SOURCE": "#postgres#",
-#                         "INPUT_KEY": "attributes->protocol"
-#                     },
-#                     {
-#                         "INPUT_JUSTIFICATION": "The task requires using a specific database to execute the query.",
-#                         "LINKING_RELEVANCE": "The database is necessary to execute the query and retrieve the required information.",
-#                         "INPUT_SOURCE": "#postgres#",
-#                         "INPUT_KEY": "attributes->database"
-#                     },
-#                     {
-#                         "INPUT_JUSTIFICATION": "The task requires using a specific collection to execute the query.",
-#                         "LINKING_RELEVANCE": "The collection is necessary to execute the query and retrieve the required information.",
-#                         "INPUT_SOURCE": "#public#",
-#                         "INPUT_KEY": "attributes->collection"
-#                     }
-#                 ]
-#             ],
-#             "orphans": [
-#                 2
-#             ]
-#         },
-#         "steps_results": [
-#             {
-#                 "output": [
-#                     {
-#                         "short_job_title": "Software Engineer"
-#                     },
-#                     {
-#                         "short_job_title": "Software Engineer"
-#                     },
-#                     {
-#                         "short_job_title": "Software Engineer"
-#                     },
-#                     {
-#                         "short_job_title": "Software Engineer"
-#                     },
-#                     {
-#                         "short_job_title": "Research Fellow"
-#                     }
-#                 ]
-#             },
-#             {
-#                 "output": []
-#             }
-#         ],
-#         "CoTF": [],
-#         "summary_op": ""
-#     }
-# ]
-# ---> WORKED WELL, planner couldn't see problem, but the checker did"""

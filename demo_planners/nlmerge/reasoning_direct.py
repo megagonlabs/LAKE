@@ -51,7 +51,7 @@ def run_planning(user_question, previous_rounds_text=[],tools_list=['JOIN_2', 'S
                 "protocol": "postgres",
                 "database": "postgres",
                 "collection": "public",
-                "source": "postgres_example"
+                "source": "default"
               }
             }
           ],
@@ -114,17 +114,3 @@ def run_planning(user_question, previous_rounds_text=[],tools_list=['JOIN_2', 'S
     return get_answer_gpt_advanced(system_prompt, [user_question]+previous_rounds_text)
     
 
-
-# def run_iterative(user_question):
-    
-
-
-
-# f=open('demo_planners/benchmark/test_files/questions_list_manual.json')
-# obj=json.load(f)
-# f.close()
-
-# for elt in obj:
-#     print(elt['question'])
-#     run_planning(elt['question'])
-#     print('\n\n\n########\n')

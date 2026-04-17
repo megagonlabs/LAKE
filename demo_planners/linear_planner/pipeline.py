@@ -1,40 +1,11 @@
 import traceback
 from demo_planners.linear_planner.operator_linking import *
 from demo_planners.linear_planner.planner import *
-# import demo_planners.garbage.linear_planner_multichoices as lpm
 from demo_planners.simple_agents_runnable import *
 from demo_planners.linear_planner.error_tackling import *
 from collections import defaultdict
 from time import *
-#The plan for the plan is 
-# First, we get the initial answer
-# So we need a function that takes as input the task, the resilience level (?? I guess I meant iteration number - but this is useless if we have the previous logs), maybe also the difficulty level - if the two are independant and this can be infered by another thing, the abstraction level - can be useful for when we are stuck - in fact maybe these different parameters can be selected dynamically, and it could be a param dico?, 
-# I guess it should also take an existing plan in the case of refinement
 from datetime import datetime
-
-
-#We have so much information in data, I guess upon failure we can use them more and more
-
-###OP LINKING OPE
-# def convert_plan_from_text_to_opelinking_dict(input_plan):
-#     output_plan=input_plan.split('\n')
-
-#     for elt in input_plan:
-#         output_plan+=[{'name':, 'description':}]
-#     return output_plan 
-
-
-#Other issue : the linking might be done on useless data. For instance, if we ask to list candidates skills, and then ask a nl2llm for each of them to answer true or false if they are proficient in a programing language, it might be that the first module gives unrelated data such as duration of job posting, but still the next one will state true or false
-
-
-
-
-# A PRE STEP could be to think about a reasoning plan before actually building it. Like the output would be a natural language program
-#The second key of json could be a thinking about this program : does it make sense does it forget anything does it consider the structure of the data ...
-#Then the third key could be a refinement of the plan using the second key.
-#The value for third key could be an additionnal input for the planner
-
-###THERE SHOULD also be probably in the end a step : is te output coherent with what the user asked for. If not, what is the problem. 
 
 import threading
 import time
@@ -95,7 +66,6 @@ def execute_linking_wrapper(plan_steps, task, abort_trigger,ancestor_dico,steps_
         detect_orphans(ancestor_dico, orphans)
         if len(orphans)>1:
             logging.critical('! Linking: Orphans found:'+str(orphans)+' (includes last node that is not an orphan)')
-            #TODO: refinement steps
         logging.critical('Linking: Orphans detection finished')
     except Exception as e:
         logging.critical('Linking: Orphan detection failed, for some reason. Some reason:' + str(e)+ (traceback.format_exc() if 'traceback' in globals() else None) +', ancestor dico : '+ str(ancestor_dico))
@@ -113,17 +83,8 @@ def operator_linking_construction_and_task_run(plan_steps,task,abort_trigger,ste
     # logging.critical(type(steps_linking))
     #As this stage we could also run the basics verification such as orphan
     #This and other verification could be launched simultaneously to the 
-
-
-
-    #####0826: TO ADD : ONCE LINKING FINISH LAUNCH THIS: SHOULD BE A THREAD
-    
-    # threads.append(t) # I don't think we need it
-    #Execution
     logging.critical("Executing plan from linking")
     execute_plan_from_linking(plan_steps,steps_linking,ancestor_dico,output,lock,threads,next_direction_set,dico_error_detection,abort_trigger,task,from_step_X_with_refinement)
-    # return {'steps_linking':steps_linking, 'orphans':orphans},output
-    #Upon failure now that we have the real results maybe we could run another type of operator linking, first one would be plan-based and this one would be results-based
 
 
 def tool_linking_plan_to_values(ope_linking_result,results_so_far,step_at_hand,abort_trigger,dico_error_detection,next_direction_set, lock , plan):
@@ -178,10 +139,8 @@ def tool_linking_plan_to_values(ope_linking_result,results_so_far,step_at_hand,a
                 else:
                     new_content+=[elttmp]
             content=new_content
-            # logging.critical('new_content',new_content)
             assert len(content)==3
             assert content[0]==content[2]==''
-            ###ERROR SHOULD PROBABLY BE USED TO SAY WHAT WENT WRONG #TODO
             content=content[1]
             if content[0]==content[-1]=="'":
                 content=content[1:-1]
@@ -220,7 +179,7 @@ def tool_linking_plan_to_values(ope_linking_result,results_so_far,step_at_hand,a
 
 
 
-####PLAN OPE
+# Planning
 
 def get_plan_aio(task:str,previous_logs=[], special_task={'addition':1},tools_list=['JOIN_2','SELECT','NL2LLM','ROWWISE_NL2LLM','NL2SQL']):
     """special task contains additionnal information needed, for instance upon iteration if there was a failure
@@ -260,7 +219,7 @@ def get_plan_aio(task:str,previous_logs=[], special_task={'addition':1},tools_li
         return get_plan(task,special_task,tools_list=tools_list)
 
 
-####EXECUTION STUFFS
+# Execution
 def execute_plan_from_linking(plan,steps_linking,ancestor_dico,overall_results,lock,threads,next_direction_set,dico_error_detection,abort_trigger,task,from_step_X_with_refinement):
     # overall_results=defaultdict(dict)
     # for step, linking in zip(parse_plan_dict2dict(plan_steps),steps_linking):
@@ -273,7 +232,6 @@ def execute_plan_from_linking(plan,steps_linking,ancestor_dico,overall_results,l
         t = threading.Thread(
             target=execute_step,
             args=(NLTool, steps_linking, overall_results, ancestor_dico, step_number, lock,next_direction_set,dico_error_detection,abort_trigger,threads,task,plan)
-            #TODO: isn't it a bit dangerous to add threads to parameter of a thread?
         )
         t.start()
         threads.append(t)
@@ -409,7 +367,7 @@ def execute_step_sub(NLTool,ope_linking_result, results_so_far,step_number,abort
 
 
 
-###GENERAL
+# Top-level orchestration
 
 # def issue_detection():
 #     """3 levels. I dont know if the first one should be handled there. the first one should be auto detection such as orphans. i dont think it make sense to wait the issue detection to state this
@@ -505,7 +463,6 @@ def from_task_to_result(task:str, previous_logs=[], tools_list=['JOIN_2','SELECT
     #     logging.critical('General: 10 consecutive errors from planning, restarting from scratch.')
     #     return []
     if len(previous_logs)>5 and not IssueLevel.plan_level in [elt['next_direction'] for elt in previous_logs[-5:]]:
-        #TODO: MAYBE ADD A DESCRIPTION TO SAY THAT LINKING FAILED MULTIPLE TIMES SO HOW TO MODIFY THE PLAN WHY THE SPECIFIC STEP FAILS############################################################################################
         logging.critical('General: 5 consecutive steps with no plan refining. Refining plan')
         previous_logs[-1]['next_direction']=IssueLevel.plan_level
     if len(previous_logs)>0 and previous_logs[-1]['next_direction'] in[IssueLevel.in_run_verification, IssueLevel.execution_level]: 
@@ -558,8 +515,6 @@ def from_task_to_result(task:str, previous_logs=[], tools_list=['JOIN_2','SELECT
         #     current_log['issue_summary_next_step']='**You need to address the following issues in the plan**\n'+issue
         #     previous_logs+=[current_log]
         #     return previous_logs
-        # TODO: refine instant check so that it works
-            
         plan_steps=parse_plan_dict2dict(plan_steps)
         current_log['plan']=plan_steps
         logging.critical('Planning: checking the plan...')
@@ -576,8 +531,6 @@ def from_task_to_result(task:str, previous_logs=[], tools_list=['JOIN_2','SELECT
         current_log['plan']=plan_steps
         
         
-    
-    #We loose the justificatiom right above. Could be useful for refining but for now lets keep like this. #TODO
     logging.critical('=======PLAN STEPS==========')
     logging.critical(plan_steps)
     #Now that we have the plan, we can run the operator linking
@@ -705,17 +658,3 @@ def general_execute_task(task:str,tools_list=['JOIN_2','SELECT','NL2LLM','ROWWIS
     return logs
 
 
-
-if __name__ == "__main__":
-    # global_task="Find the maximum salary among people who should have proficiency in at least one programming language."
-
-    global_task="What jobs are available for data scientists in the bay area?"
-    output=general_execute_task(global_task, tools_list=['JOIN_2','SELECT','NL2LLM','ROWWISE_NL2LLM','NL2SQL'])
-    # logging.critical(type(output))
-    index_last_step=output[-1]['steps_results'].keys()
-    index_last_step=[int(x) for x in index_last_step if str(x).isdigit()]
-    index_last_step=max(index_last_step) if len(index_last_step)>0 else 0
-    logging.critical('====================OUTPUT END============================')
-    logging.critical(output[-1]['steps_results'][index_last_step]['output'] if index_last_step in output[-1]['steps_results'].keys() else 'No step executed') 
-
-    logging.critical(output[-1]['plan_tree'][index_last_step]['plan_tree'] if index_last_step in output[-1]['plan_tree'].keys() else 'No plan to see') 

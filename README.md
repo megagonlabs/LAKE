@@ -1,28 +1,24 @@
-# Demo Code Package (without BLUE source)
+# L.A.K.E.
 
-This folder contains the demo app, runner, and planner-related `demo_planners` code needed for the demo paper.
+L.A.K.E. is the demo package for the associated demo paper. This repository contains the Streamlit UI, the CLI/API runner, and the planner implementations used to execute and visualize demo runs.
 
 ## Important
 
-The `blue` source code is intentionally **not included** here.
+The Blue source code is intentionally **not** vendored into this repository. Install Blue from the upstream repository before running L.A.K.E.:
 
-Get it from:
 - https://github.com/megagonlabs/blue
 
-## Included
+## Repository Layout
 
-- `streamlit_app.py`: Streamlit UI for running and visualizing planner outputs.
-- `demo_pipeline_runner.py`: CLI/API entrypoint used by the app.
-- `demo_planners/`: planner implementations and helper modules for:
-  - `single_shot_tree_planning_guided_inner_outer` (Single-Shot Tree Planning, guided NLMerge, inner -> outer)
-  - `single_shot_tree_planning_guided_outer_inner` (Single-Shot Tree Planning, guided NLMerge, outer -> inner)
-  - `single_shot_tree_planning_reasoning` (Single-Shot Tree Planning, reasoning)
-  - `cascade_planning`
-  - `iterative_planning`
+- `streamlit_app.py`: Streamlit UI for running the demo and visualizing operator graphs.
+- `demo_pipeline_runner.py`: CLI/API entrypoint that normalizes inputs and returns a structured payload for the UI.
+- `demo_planners/`: planner implementations, Blue operator wrappers, and helper utilities.
+- `docs/`: architecture, code-structure, and testing notes for this repository.
+- `tests/`: lightweight smoke tests that do not require a running Blue backend.
 
-## Setup
+## Installation
 
-1. Clone and install BLUE (editable install recommended):
+1. Clone and install Blue (editable install recommended):
 
 ```bash
 git clone https://github.com/megagonlabs/blue.git
@@ -30,28 +26,36 @@ cd blue
 pip install -e ./lib
 ```
 
-2. Install demo dependencies:
+For fuller environment setup, see the upstream Blue repository documentation.
+
+2. Install L.A.K.E. dependencies:
 
 ```bash
-cd /path/to/demo_code
+cd /path/to/LAKE
 pip install -r requirements.txt
 ```
 
-3. Ensure this folder and BLUE source are on `PYTHONPATH` when running:
+3. Ensure both this repository and the Blue source tree are on `PYTHONPATH`:
 
 ```bash
 export PYTHONPATH="/path/to/blue/lib/src:$(pwd):${PYTHONPATH}"
 ```
 
+4. Set required credentials before running planner variants that call the OpenAI SDK:
+
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
+
 ## Run
 
-### Streamlit app
+### Streamlit App
 
 ```bash
 streamlit run streamlit_app.py --server.address 0.0.0.0 --server.port 8501
 ```
 
-### CLI runner
+### CLI Runner
 
 ```bash
 python demo_pipeline_runner.py \
@@ -61,7 +65,88 @@ python demo_pipeline_runner.py \
   --service-url ws://localhost:8001
 ```
 
-## Notes
+## Configuration Notes
 
-- `streamlit-agraph` is used for clickable DAG visualization. If unavailable, the app falls back to a non-clickable flow.
-- Runtime still requires a reachable BLUE service endpoint (default: `ws://localhost:8001`).
+- `ws://localhost:8001` is only the **local development default** for the Blue websocket service. Override it from the Streamlit sidebar or with `--service-url` for other environments.
+- L.A.K.E. requires a reachable Blue service endpoint and a Blue environment with the relevant datasource/operator configuration already in place.
+- `streamlit-agraph` is used for clickable DAG visualization. If it is unavailable, the UI falls back to a non-clickable view.
+- The OpenAI Python SDK reads credentials from environment variables; `OPENAI_API_KEY` must be available when planner paths call `OpenAI()`.
+
+## Testing
+
+Run the repository smoke tests with:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+These tests intentionally avoid external services. They validate that tracked Python files compile, that release-critical documentation sections are present, and that the local docs scaffold exists.
+
+## Documentation
+
+- [Repository Overview](docs/README.md)
+- [Code Structure](docs/code-structure.md)
+- [Testing Notes](docs/testing.md)
+
+## License
+
+This project is licensed under the terms in `LICENSE.txt`.
+
+## Citation
+
+If you use this repository, please cite the associated L.A.K.E. demo paper. Replace the placeholder below with the final camera-ready citation before publication.
+
+```bibtex
+@misc{lake_demo_2026,
+  title        = {L.A.K.E.},
+  author       = {TODO},
+  year         = {2026},
+  note         = {Placeholder citation. Replace with the final published paper metadata before release.}
+}
+```
+
+## Contact
+
+For questions or issues, please open an issue in this repository or contact `contact_oss@megagon.ai`.
+
+## Disclosure
+
+This software may include, incorporate, or access open source software (OSS) components, datasets and other third party components, including those identified below. The license terms respectively governing the datasets and third-party components continue to govern those portions, and you agree to those license terms may limit any distribution, use, and copying. You may use any OSS components under the terms of their respective licenses, which may include BSD 3, Apache 2.0, and other licenses.
+
+In the event of conflicts between Megagon Labs, Inc. ("Megagon") license conditions and the OSS license conditions, the applicable OSS conditions governing the corresponding OSS components shall prevail. You agree not to, and are not permitted to, distribute actual datasets used with the OSS components listed below. You agree and are limited to distribute only links to datasets from known sources by listing them in the datasets overview table below.
+
+You agree that any right to modify datasets originating from parties other than Megagon are governed by the respective third party's license conditions. You agree that Megagon grants no license as to any of its intellectual property and patent rights.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS (INCLUDING MEGAGON) "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+You agree to cease using, incorporating, and distributing any part of the provided materials if you do not agree with the terms or the lack of any warranty herein. While Megagon makes commercially reasonable efforts to ensure that citations in this document are complete and accurate, errors may occur. If you see any error or omission, please help us improve this document by sending information to `contact_oss@megagon.ai`.
+
+## Datasets
+
+All datasets used within the product are listed below (including their copyright holders and the license information).
+
+For datasets having different portions released under different licenses, please refer to the included upstream link specified for each of the respective datasets for identifications of dataset files released under the identified licenses.
+
+| ID | OSS Component Name | Modified | Copyright Holder | Upstream Link | License |
+| --- | --- | --- | --- | --- | --- |
+| 1 | JD2Skills-BERT-XMLC | Yes | Taehoon Kim | https://github.com/WING-NUS/JD2Skills-BERT-XMLC | MIT License |
+
+## Megagon Components
+
+The primary Megagon dependency used by this repository is listed below.
+
+| Component | Role | Upstream Link | Notes |
+| --- | --- | --- | --- |
+| Blue | Required agent-orchestration framework used by the planners and operators | https://github.com/megagonlabs/blue | Blue source is intentionally not included in this repository; install it separately before running L.A.K.E. |
+
+## Open Source Software (OSS) Components
+
+All direct third-party OSS components used within this repository are listed below (including their copyright holders and license information).
+
+| ID | OSS Component Name | Modified | Copyright Holder | Upstream Link | License |
+| --- | --- | --- | --- | --- | --- |
+| 1 | streamlit | No | Snowflake Inc. | https://streamlit.io | Apache-2.0 |
+| 2 | streamlit-agraph | No | Christian Klose | https://pypi.org/project/streamlit-agraph/ | MIT License |
+| 3 | openai | No | OpenAI | https://github.com/openai/openai-python | Apache-2.0 |

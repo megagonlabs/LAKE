@@ -10,22 +10,6 @@ class Node:
         self.inputs = inputs  # list of Node
         self.attrs = attrs    # dict or str or {}
 
-# def parse_to_node(ast_node):
-#     if isinstance(ast_node, ast.Call):
-#         if not isinstance(ast_node.func, ast.Name):
-#             raise ValueError("Expected function name")
-#         tool_name = ast_node.func.id
-#         if len(ast_node.args) != 2:
-#             raise ValueError("Expected exactly 2 arguments for tool call"+str([str(x) for x in ast_node.args]))
-        
-#         inputs_ast = ast_node.args[0]
-#         attrs_ast = ast_node.args[1]
-        
-#         if not isinstance(inputs_ast, ast.List):
-#             raise ValueError("First argument should be a list")
-        
-import ast
-
 def parse_to_node(ast_node):
     if isinstance(ast_node, ast.Call):
         if not isinstance(ast_node.func, ast.Name):
@@ -174,7 +158,6 @@ def parse_chain(chain):
 #     result = NL_to_RUN(tool_name, inputs, attrs, properties)
 #     return result
 
-# # Example usage (assuming NL_to_RUN and the tree are provided)
 # def example_usage(tree_dict, NL_to_RUN):
 #     """
 #     Example function to demonstrate running the tool tree.
@@ -321,136 +304,3 @@ async def example_usage(tree_dict, NL_to_RUN):
     return result, output_tree
 
 # For demonstration, print the tree and simulate running it
-if __name__ == "__main__":
-
-
-
-    # Example tree with two subtrees
-    # example_tree = {
-    #     "tool": "JOIN_2",
-    #     "inputs": [
-    #         {
-    #             "tool": "NL2SQL",
-    #             "inputs": [{"type": "empty_input"}],
-    #             "attrs": {
-    #                 "question": "Select * from jobs where min_experience > 1 and min_experience < 3",
-    #                 "protocol": "postgres",
-    #                 "database": "postgres",
-    #                 "collection": "public"
-    #             }
-    #         },
-    #         {
-    #             "tool": "NL2SQL",
-    #             "inputs": [{"type": "empty_input"}],
-    #             "attrs": {
-    #                 "question": "Select * from skills_required_for_job",
-    #                 "protocol": "postgres",
-    #                 "database": "postgres",
-    #                 "collection": "public"
-    #             }
-    #         }
-    #     ],
-    #     "attrs": {
-    #         "join_on_table1": "unique_job_id",
-    #         "join_on_table2": "unique_job_id",
-    #         "join_type": "inner",
-    #         "join_suffix": ["_jobs", "_skills"],
-    #         "keep_keys": "both"
-    #     }
-    # }
-
-    example_chain=[
-        
-            {
-            "TASK": "REFORMULATE",
-            "REASONING": "The original query is a question. Reformulating it into a statement will make it clearer and more direct for processing.",
-            "OUTPUT": "#Find jobs with a duration of more than 1 year but less than 3 years, and require Python skills.#"
-            },
-            {
-            "TASK": "DATA CHECK",
-            "REASONING": "Do we have job duration information in the database? Yes, we have 'min_experience' in the 'jobs' table. Does it include information on skills? Yes, the 'skills_required_for_job' table includes 'skill_required'. Is it in the correct format? Yes, but we need to ensure the duration is between 1 and 3 years. Is it usable without additional operations? Yes, but we need to join the tables to match jobs with their required skills.",
-            "OUTPUT": "#Find jobs with min_experience between 1 and 3 years and require Python skills.#"
-            },
-            {
-            "TASK": "TOOL CHECK",
-            "REASONING": "What is the correct tool to use? We need to gather data from the database. We can use NL2SQL to convert the natural language query into a SQL query. Why is this tool appropriate for the task? NL2SQL can directly query the database to retrieve job durations and their required skills based on a natural language input.",
-            "OUTPUT": "NL2SQL([[]],#jobs with min_experience between 1 and 3 years and require Python skills#)"
-            },
-            {
-            "TASK": "TOOL INPUT CHECK",
-            "REASONING": "Can the tool operate given what is provided to it? Yes - NL2SQL operates on the database directly without input data. Is it usable without additional operations? No, we need to join the 'jobs' table with the 'skills_required_for_job' table to filter by Python skills.",
-            "OUTPUT": "NL2SQL([[]],#jobs with min_experience between 1 and 3 years and require Python skills#)"
-            },
-            {
-            "TASK": "TOOL INPUT TO ATTRIBUTES",
-            "REASONING": "We need to convert the attributes to the correct dictionary format. We need the attribute question. We make sure to give the correct names as shown in data. We will give it the value ``Select 'unique_job_id', 'min_experience' from 'jobs' where 'min_experience' > 1 and 'min_experience' < 3'''. For the protocol, we use postgres. For database, we use postgres. For collection, we use public. The context can be empty as we don't have additional details to provide.",
-            "OUTPUT": "NL2SQL([[]],{'question':\"Select 'unique_job_id', 'min_experience' from 'jobs' where 'min_experience' > 1 and 'min_experience' < 3\", 'protocol':'postgres','database':'postgres', 'source':'postgres_example','collection':'public'})"
-            },
-            {
-            "TASK": "TOOL CHECK",
-            "REASONING": "What is the correct tool to use? We need to join the results from NL2SQL with the 'skills_required_for_job' table to filter by Python skills. We use JOIN_2 for this task. Why is this tool appropriate for the task? JOIN_2 can combine data from two tables based on a common key, allowing us to filter jobs by required skills.",
-            "OUTPUT": "JOIN_2([NL2SQL([[]],{'question':\"Select 'unique_job_id', 'min_experience' from 'jobs' where 'min_experience' > 1 and 'min_experience' < 3\", 'protocol':'postgres','database':'postgres', 'source':'postgres_example','collection':'public'}), NL2SQL([[]],{'question':\"Select 'unique_job_id', 'skill_required' from 'skills_required_for_job' where 'skill_required' = 'Python'\", 'protocol':'postgres','database':'postgres', 'source':'postgres_example','collection':'public'})], #join on 'unique_job_id'#)"
-            },
-            {
-            "TASK": "TOOL INPUT CHECK",
-            "REASONING": "Can the tool operate given what is provided to it? Yes - JOIN_2 operates on two input tables, joining them on a common key. Is it usable without additional operations? Yes, the data from NL2SQL provides the necessary columns for JOIN_2 to process.",
-            "OUTPUT": "JOIN_2([NL2SQL([[]],{'question':\"Select 'unique_job_id', 'min_experience' from 'jobs' where 'min_experience' > 1 and 'min_experience' < 3\", 'protocol':'postgres','database':'postgres', 'source':'postgres_example','collection':'public'}), NL2SQL([[]],{'question':\"Select 'unique_job_id', 'skill_required' from 'skills_required_for_job' where 'skill_required' = 'Python'\", 'protocol':'postgres','database':'postgres', 'source':'postgres_example','collection':'public'})], #join on 'unique_job_id'#)"
-            },
-            {
-            "TASK": "TOOL INPUT TO ATTRIBUTES",
-            "REASONING": "We need to convert the attributes to the correct dictionary format. For join_on_table1 and join_on_table2, we use 'unique_job_id' as it is the common key. For join_type, we use 'inner' to ensure only matching records are kept. For join_suffix, we use default. For keep_keys, we use 'both' to retain all join indices.",
-            "OUTPUT": "JOIN_2([NL2SQL([[]],{'question':\"Select 'unique_job_id', 'min_experience' from 'jobs' where 'min_experience' > 1 and 'min_experience' < 3\", 'protocol':'postgres','database':'postgres', 'source':'postgres_example','collection':'public'}), NL2SQL([[]],{'question':\"Select 'unique_job_id', 'skill_required' from 'skills_required_for_job' where 'skill_required' = 'Python'\", 'protocol':'postgres','database':'postgres', 'source':'postgres_example','collection':'public'})], {'join_on_table1':'unique_job_id','join_on_table2':'unique_job_id','join_type':'inner','join_suffix':[],'keep_keys':'both'})"
-            },
-            {
-            "TASK": "USER INTENT ALIGNMENT",
-            "REASONING": "Are we answering the user's original question? Yes, we are finding jobs with a duration of more than 1 year but less than 3 years, and require Python skills. Are any additional steps needed to fully address the intent? No, the JOIN_2 operation ensures we only return jobs that meet both criteria, fully addressing the user's intent.",
-            "OUTPUT": "JOIN_2([NL2SQL([[]],{'question':\"Select 'unique_job_id', 'min_experience' from 'jobs' where 'min_experience' > 1 and 'min_experience' < 3\", 'protocol':'postgres','database':'postgres', 'source':'postgres_example','collection':'public'}), NL2SQL([[]],{'question':\"Select 'unique_job_id', 'skill_required' from 'skills_required_for_job' where 'skill_required' = 'Python'\", 'protocol':'postgres','database':'postgres', 'source':'postgres_example','collection':'public'})], {'join_on_table1':'unique_job_id','join_on_table2':'unique_job_id','join_type':'inner','join_suffix':[],'keep_keys':'both'})"
-            }
-        ]
-        
-
-    example_tree = parse_chain(example_chain)
-    # print("\nTree as dict:")
-    # print(json.dumps(tree_dict, indent=2))
-    
-    # Mock NL_to_RUN for demonstration (simulating a synchronous function with delay)
-    def mock_NL_to_RUN(tool, inp, attributes, properties):
-        print(f"[{time.strftime('%H:%M:%S')}] {tool} processing with inputs and attributes {attributes}")
-        # time.sleep(1)  # Simulate I/O-bound operation (e.g., database query)
-        return NL_to_RUN(tool, inp, attributes, properties)  # Call the actual function for side effects/logging
-        # return f"Result of {tool}"
-    
-    # Run the tree asynchronously
-    result, output_tree = asyncio.run(example_usage(example_tree, mock_NL_to_RUN))
-    print("Final result:", result)
-    # print("\nOutput tree:")
-    # print(json.dumps(output_tree, indent=2))
-
-
-
-
-
-    ####EX RUN 0911 0445pm
-
-#     jflavien@ip-10-0-165-149:~/rit-git/blue$ /bin/python /home/jflavien/rit-git/blue/demo_planners/nl_mergeplannerlinker_totree.py
-# JOIN_2
-# - inputs:
-#   NL2SQL
-#   - inputs:
-#     - empty input
-#   - attrs: {'question': "Select 'unique_job_id', 'min_experience' from 'jobs' where 'min_experience' > 1 and 'min_experience' < 3", 'protocol': 'postgres', 'database': 'postgres', 'collection': 'public'}
-#   NL2SQL
-#   - inputs:
-#     - empty input
-#   - attrs: {'question': "Select 'unique_job_id', 'skill_required' from 'skills_required_for_job' where 'skill_required' = 'Python'", 'protocol': 'postgres', 'database': 'postgres', 'collection': 'public'}
-# - attrs: {'join_on_table1': 'unique_job_id', 'join_on_table2': 'unique_job_id', 'join_type': 'inner', 'join_suffix': [], 'keep_keys': 'both'}
-# [23:44:50] Starting JOIN_2
-# [23:44:50] Starting NL2SQL
-# [23:44:50] Starting NL2SQL
-# [23:44:50] NL2SQL processing with inputs and attributes {'question': "Select 'unique_job_id', 'min_experience' from 'jobs' where 'min_experience' > 1 and 'min_experience' < 3", 'protocol': 'postgres', 'database': 'postgres', 'collection': 'public'}
-# [23:44:50] NL2SQL processing with inputs and attributes {'question': "Select 'unique_job_id', 'skill_required' from 'skills_required_for_job' where 'skill_required' = 'Python'", 'protocol': 'postgres', 'database': 'postgres', 'collection': 'public'}
-# [23:44:53] Completed NL2SQL
-# [23:44:54] Completed NL2SQL
-# [23:44:54] JOIN_2 processing with inputs and attributes {'join_on_table1': 'unique_job_id', 'join_on_table2': 'unique_job_id', 'join_type': 'inner', 'join_suffix': [], 'keep_keys': 'both'}
-# [23:44:54] Completed JOIN_2
-# Final result: [[{'unique_job_id_ds0': 'job-2019-0099347:research associate, health services research and evaluation, rhs (2-yr contract):10 may 2019:company_327', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0099347:research associate, health services research and evaluation, rhs (2-yr contract):10 may 2019:company_327', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0099347:research associate, health services research and evaluation, rhs (2-yr contract):10 may 2019:company_327', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0099347:research associate, health services research and evaluation, rhs (2-yr contract):10 may 2019:company_327', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0118932:teaching partner:06 jun 2019:company_570', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0118932:teaching partner:06 jun 2019:company_570', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0118932:teaching partner:06 jun 2019:company_570', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0118932:teaching partner:06 jun 2019:company_570', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0112397:full stack developer:28 may 2019:company_215', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0112397:full stack developer:28 may 2019:company_215', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0112397:full stack developer:28 may 2019:company_215', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0112397:full stack developer:28 may 2019:company_215', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0105944:civil & structural drafter:17 may 2019:company_1438', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0105944:civil & structural drafter:17 may 2019:company_1438', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0105944:civil & structural drafter:17 may 2019:company_1438', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0105944:civil & structural drafter:17 may 2019:company_1438', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0107151:associate consultant (k2):21 may 2019:company_2145', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0107151:associate consultant (k2):21 may 2019:company_2145', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0107151:associate consultant (k2):21 may 2019:company_2145', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0107151:associate consultant (k2):21 may 2019:company_2145', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0108354:engineer, integrated operations centre:22 may 2019:company_247', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0108354:engineer, integrated operations centre:22 may 2019:company_247', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0108354:engineer, integrated operations centre:22 may 2019:company_247', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0108354:engineer, integrated operations centre:22 may 2019:company_247', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0099318:software engineer:10 may 2019:company_1110', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0099318:software engineer:10 may 2019:company_1110', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0099318:software engineer:10 may 2019:company_1110', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0099318:software engineer:10 may 2019:company_1110', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0083839:senior consultant:22 may 2019:company_763', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0083839:senior consultant:22 may 2019:company_763', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0083839:senior consultant:22 may 2019:company_763', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0083839:senior consultant:22 may 2019:company_763', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0100903:software engineer:13 may 2019:company_3632', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0100903:software engineer:13 may 2019:company_3632', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0100903:software engineer:13 may 2019:company_3632', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0100903:software engineer:13 may 2019:company_3632', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0014160:civil & structural drafter:17 may 2019:company_1438', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0014160:civil & structural drafter:17 may 2019:company_1438', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0014160:civil & structural drafter:17 may 2019:company_1438', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0014160:civil & structural drafter:17 may 2019:company_1438', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0097262:executive project engineer (m&e):08 may 2019:company_633', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0097262:executive project engineer (m&e):08 may 2019:company_633', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0097262:executive project engineer (m&e):08 may 2019:company_633', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0097262:executive project engineer (m&e):08 may 2019:company_633', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0097917:engineer:08 may 2019:company_3460', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0097917:engineer:08 may 2019:company_3460', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0097917:engineer:08 may 2019:company_3460', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0097917:engineer:08 may 2019:company_3460', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0117920:developer for sap b1:04 jun 2019:company_2207', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0117920:developer for sap b1:04 jun 2019:company_2207', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0117920:developer for sap b1:04 jun 2019:company_2207', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0117920:developer for sap b1:04 jun 2019:company_2207', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0021652:senior consultant:22 may 2019:company_763', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0021652:senior consultant:22 may 2019:company_763', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0021652:senior consultant:22 may 2019:company_763', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0021652:senior consultant:22 may 2019:company_763', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0098491:sitecore developer:09 may 2019:company_583', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0098491:sitecore developer:09 may 2019:company_583', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0098491:sitecore developer:09 may 2019:company_583', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0098491:sitecore developer:09 may 2019:company_583', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0073785:senior software engineer:14 may 2019:company_3604', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0073785:senior software engineer:14 may 2019:company_3604', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0073785:senior software engineer:14 may 2019:company_3604', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0073785:senior software engineer:14 may 2019:company_3604', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0051203:assistant research officer:29 may 2019:company_746', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0051203:assistant research officer:29 may 2019:company_746', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0051203:assistant research officer:29 may 2019:company_746', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0051203:assistant research officer:29 may 2019:company_746', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0116575:research associate:03 jun 2019:company_84', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0116575:research associate:03 jun 2019:company_84', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0116575:research associate:03 jun 2019:company_84', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0116575:research associate:03 jun 2019:company_84', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0098314:full stack software engineer:09 may 2019:company_198', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0098314:full stack software engineer:09 may 2019:company_198', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0098314:full stack software engineer:09 may 2019:company_198', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0098314:full stack software engineer:09 may 2019:company_198', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0117795:android engineer:04 jun 2019:company_234', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0117795:android engineer:04 jun 2019:company_234', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0117795:android engineer:04 jun 2019:company_234', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0117795:android engineer:04 jun 2019:company_234', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0113319:software engineer-microsoft office suite:29 may 2019:company_158', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0113319:software engineer-microsoft office suite:29 may 2019:company_158', 'skill_required': 'python'}, {'unique_job_id_ds0': 'job-2019-0113319:software engineer-microsoft office suite:29 may 2019:company_158', 'min_experience': 2.0, 'unique_job_id_ds1': 'job-2019-0113319:software engineer-microsoft office suite:29 may 2019:company_158', 'skill_required': 'python'}, ...

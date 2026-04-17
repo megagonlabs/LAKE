@@ -1,4 +1,3 @@
-
 from blue.operators.create_database_operator import *
 from blue.operators.create_table_operator import CreateTableOperator, create_table_operator_function
 from blue.operators.insert_table_operator import InsertTableOperator, insert_table_operator_function
@@ -13,12 +12,31 @@ from blue.operators.join_operator import *
 from collections import defaultdict
 import logging
 
+from demo_planners.config import (
+    DEFAULT_DATA_REGISTRY_NAME,
+    DEFAULT_PLATFORM_NAME,
+    DEFAULT_SERVICE_URL,
+    DEFAULT_SOURCE_NAME,
+)
+
 import re  # If not already imported outside the function
 
 logging.basicConfig(
     level=logging.CRITICAL,  # Or DEBUG, WARNING, etc.
     format='%(asctime)s [%(levelname)s] [%(threadName)s] %(message)s'
 )
+
+
+def _apply_default_blue_runtime(properties):
+    """Apply publication-safe local defaults for Blue-backed demo calls."""
+    properties.update(
+        {
+            "service_url": DEFAULT_SERVICE_URL,
+            "platform.name": DEFAULT_PLATFORM_NAME,
+            "data_registry.name": DEFAULT_DATA_REGISTRY_NAME,
+        }
+    )
+    return properties
 
 
 def recursive_limit_for_dico(dico, number_to_display=3):
@@ -834,7 +852,7 @@ Returns the rows from the table matching the query, including its columns (field
 attributes:
 -question: what we want to obtain from the query
 -protocol: one of ["postgres", "mysql"]
--source: one of ["postgres_example"]
+-source: one of ["default"]
 -database: choose between postgres or any other
 -collection: choose between public or any other collection
 -context : can be empty, used to provide additionnal details
@@ -932,8 +950,6 @@ Returns the input data with the new element appended.""",'advanced':""""""},}
 
 
 
-#SHOULD BE HANDLED DYNAMICALLY, FROM A FILE THAT WOULD BE UPDATED UPON DISCOVERY OF NEW ISSUES
-#We select the best tips based on usefulness, based on the freq problematic we do or not
 operators_frequent_errors_plan_level={'JOIN':{'errors':
                                               [
                                                   {'error':"",
@@ -1003,7 +1019,7 @@ tools_rules={'NL2SQL':{'basic':"""1. This tool cannot operate on results from pr
 attributes:
 -question: what we want to obtain from the query
 -protocol: one of ["postgres", "mysql"]
--source: one of ["postgres_example"]
+-source: one of ["default"]
 -database: choose between postgres or any other
 -collection: choose between public or any other collection
 -context : can be empty, used to provide additionnal details
@@ -1104,8 +1120,7 @@ def standard_NL2LLM_agent(question, attributes_output):
     input_data = [[]]
     nl2llm_operator = NL2LLMOperator()
     properties_NL2LLM = nl2llm_operator.properties
-    # print(question)
-    properties_NL2LLM['service_url'] = 'ws://localhost:8001'  # update this to your service url
+    properties_NL2LLM['service_url'] = DEFAULT_SERVICE_URL
     attributes_NL2LLM = {
         "query": question,
         "context": "",
@@ -1144,8 +1159,8 @@ def get_count(inp, attributes, properties):
 def get_standard_NL2LLM_agent(inp, attributes, properties):
     input_data = inp
     nl2llm_operator = NL2LLMOperator()
-    properties= nl2llm_operator.properties  #Do we want that? #TODO
-    properties['service_url'] = 'ws://localhost:8001'  # update this to your service url
+    properties= nl2llm_operator.properties
+    properties['service_url'] = DEFAULT_SERVICE_URL
     if isinstance(attributes, dict) and 'attrs' not in attributes and 'attr_names' in attributes:
         names = attributes.get('attr_names') or []
         if isinstance(names, list):
@@ -1259,18 +1274,12 @@ def get_custom_NL2SQL_agent(inp,attributes,properties):
     nl2sql_operator = NL2SQLOperator()
     properties = nl2sql_operator.properties
     # logging.critical('DEBUG attributes:'+json.dumps(attributes))
-    properties.update(
-        {
-            "service_url": "ws://localhost:8001",  # update this to your service url
-            "platform.name": "jflavien",
-            "data_registry.name": "default",
-        }
-    )
-    properties['service_url'] = 'ws://localhost:8001'  # update this to your service url
+    _apply_default_blue_runtime(properties)
+    properties['service_url'] = DEFAULT_SERVICE_URL
     
     if attributes['runOn']=='database':#inp==[[]] or inp==[] or len(inp)==0 or len(inp[0])==0:
         logging.critical('MAGICNL2SQL: NL2SQL on database')
-        attributes['source']='postgres_example'
+        attributes['source']=DEFAULT_SOURCE_NAME
         attributes['protocol']='postgres'
         attributes['database']='postgres'
         attributes['collection']='public'
@@ -1288,13 +1297,7 @@ def get_custom_NL2SQL_agent(inp,attributes,properties):
         # Get default properties
         createdb_operator = CreateDatabaseOperator()
         properties_createdb = createdb_operator.properties
-        properties_createdb.update(
-            {
-                "service_url": "ws://localhost:8001",  # update this to your service url
-                "platform.name": "jflavien",
-                "data_registry.name": "default",
-            }
-        )
+        _apply_default_blue_runtime(properties_createdb)
 
         # logging.critical('1')
         # call the function
@@ -1342,13 +1345,7 @@ def get_custom_NL2SQL_agent(inp,attributes,properties):
         # Get default properties
         createtable_operator = CreateTableOperator()
         properties_createtable = createtable_operator.properties
-        properties_createtable.update(
-            {
-                "service_url": "ws://localhost:8001",  # update this to your service url
-                "platform.name": "jflavien",
-                "data_registry.name": "default",
-            }
-        )
+        _apply_default_blue_runtime(properties_createtable)
 
 
         # call the function
@@ -1361,18 +1358,12 @@ def get_custom_NL2SQL_agent(inp,attributes,properties):
         attributes_inserttable = {"source": "internal", "database": "tmp1", "collection": "public", "table": "tb", "batch_size": 100}
 
         # Example properties
-        properties_inserttable = {"platform.name": "jflavien", "data_registry.name": "default"}
+        properties_inserttable = {"platform.name": DEFAULT_PLATFORM_NAME, "data_registry.name": DEFAULT_DATA_REGISTRY_NAME}
 
         # Get default properties
         inserttable_operator = InsertTableOperator()
         properties_inserttable = inserttable_operator.properties
-        properties_inserttable.update(
-            {
-                "service_url": "ws://localhost:8001",  # update this to your service url
-                "platform.name": "jflavien",
-                "data_registry.name": "default",
-            }
-        )
+        _apply_default_blue_runtime(properties_inserttable)
 
         # logging.critical('5')
         # call th   e function
@@ -1396,14 +1387,8 @@ def get_standard_NL2SQL_agent(inp,attributes,properties):
     nl2sql_operator = NL2SQLOperator()
     properties = nl2sql_operator.properties
     # logging.critical('DEBUG attributes:'+json.dumps(attributes))
-    properties.update(
-        {
-            "service_url": "ws://localhost:8001",  # update this to your service url
-            "platform.name": "jflavien",
-            "data_registry.name": "default",
-        }
-    )
-    properties['service_url'] = 'ws://localhost:8001'  # update this to your service url
+    _apply_default_blue_runtime(properties)
+    properties['service_url'] = DEFAULT_SERVICE_URL
     return call_with_retry(nl2sql_operator_function,input_data, attributes, properties)
 
 
@@ -1425,12 +1410,6 @@ def lowercase_dict_values(obj):
         return obj
 
 def get_standard_join_2_operator(inp,attributes,properties):
-    print(json.dumps(recursive_limit_for_dico(inp), indent=2))
-    # inptmp=inp
-    # while type(inptmp)==list :
-    #     print('Shape imptmp:',len(inptmp))
-    #     inptmp=inptmp[0]
-    # print(type(inp))
     if 'new_element' not in attributes.keys():
         attributes['join_on']=[[attributes['join_on_table1']],[attributes['join_on_table2']]]
         return join_operator_function(lowercase_dict_values(inp[0]+inp[1]),attributes)
@@ -1442,7 +1421,6 @@ def get_standard_join_2_operator(inp,attributes,properties):
         elif type(new_elt)==list:
             logging.critical("Append operator: linker missed one dimension for input. Putting appended element in the correct format.")
             inp= inp+[new_elt]
-        #TODO: added this lowercase thing, check if it is acceptable
         return join_operator_function(lowercase_dict_values(inp),attributes)
     
 
@@ -1745,49 +1723,3 @@ def build_nested_plan(raw_plan, ancestor_dico, operators_linking):
     return plan_tree[0] if len(plan_tree) == 1 else plan_tree
 
 
-# # Example usage:
-# ancestor_dico = {
-#     "1": [0],
-#     "2": [0],
-#     "3": [1, 2],
-#     "4": [3],
-#     "5": [3, 4]
-# }
-
-# # (raw_plan and operators_linking as given in your example)
-# nested_plan = build_nested_plan(raw_plan, ancestor_dico, operators_linking)
-# import json
-# print(json.dumps(nested_plan, indent=2))
-
-
-
-
-
-
-
-
-
-
-
-
-if __name__ == "__main__":
-    inp1=[[{'a':1,'b':2},{'a':3,'b':4}, {'a':0,'b':6}]]
-    inp2=[[{'a':1,'bw':6},{'a':7,'bw':8}]]
-    # attributes={'join_on':['a','a'], 'new_element':inp2}
-    # t=get_standard_join_2_operator(inp1,attributes,None)
-
-
-    # attributes={'operand':'max', 'operand_key':'b'}
-    # t=get_standard_select_operator(inp1,attributes,None)
-
-    nl2llmoperator = NL2SQLOperator()
-    properties = nl2llmoperator.properties
-    # t=rowwise_nl2llm_operator_function(inp1, {'query':'What is the sum of a and b?','attr_names':['sum_ab']}, properties)
-    # print(t) 
-
-
- 
-    print(get_custom_NL2SQL_agent(inp1,{"question":"Select all elements from table tb where a<2"},properties))
-
-    print('##############')
-    print(get_custom_NL2SQL_agent([[]],{"question":"Find 10 jobs "},properties))

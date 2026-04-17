@@ -1,28 +1,5 @@
-#TODO
-#SOLVE PB WITH FAKE DATA REGISTRY THAT GIVES THIS ERROR
-
-# Traceback (most recent call last):
-#   File "/home/jflavien/rit-git/blue/demo_planners/pipeline_operators.py", line 208, in <module>
-#     general_execute_task(global_task)
-#   File "/home/jflavien/rit-git/blue/demo_planners/pipeline_operators.py", line 201, in general_execute_task
-#     logs=from_task_to_result(task,logs)
-#   File "/home/jflavien/rit-git/blue/demo_planners/pipeline_operators.py", line 186, in from_task_to_result
-#     ope_run_output=operator_linking_construction_and_task_run(plan_steps)
-#   File "/home/jflavien/rit-git/blue/demo_planners/pipeline_operators.py", line 83, in operator_linking_construction_and_task_run
-#     output=execute_plan_from_linking(plan_steps,steps_linking)
-#   File "/home/jflavien/rit-git/blue/demo_planners/pipeline_operators.py", line 143, in execute_plan_from_linking
-#     res_tmp=execute_step(NLTool,linking, overall_results)
-#   File "/home/jflavien/rit-git/blue/demo_planners/pipeline_operators.py", line 151, in execute_step
-#     result=NL_to_RUN(NLTool, inp, attributes, properties)
-#   File "/home/jflavien/rit-git/blue/demo_planners/simple_agents_runnable.py", line 62, in NL_to_RUN
-#     output= dico_NL_to_Tool[NLTool](inp, attributes, properties)
-#   File "/home/jflavien/rit-git/blue/demo_planners/simple_agents_runnable.py", line 51, in get_standard_NL2SQL_agent
-#     return nl2sql_operator_function(input_data, attributes, properties)
-#   File "/home/jflavien/rit-git/blue/lib/src/blue/operators/nl2sql_operator.py", line 38, in nl2sql_operator_function
-#     schema = _fetch_database_schema(protocol, database, collection, properties)
-#   File "/home/jflavien/rit-git/blue/lib/src/blue/operators/nl2sql_operator.py", line 265, in _fetch_database_schema
-#     raise ValueError(f"Error fetching schema: {str(e)}")
-# ValueError: Error fetching schema: connection to server at "localhost" (127.0.0.1), port 5432 failed: FATAL:  database "hr_matching_curation_v2" does not exist
+# Planner prompt prototypes and data descriptions used by the demo pipeline.
+# Keep datasource examples generic so the repository is safe to publish.
 
 
 
@@ -32,7 +9,6 @@ import json
 import sys
 from typing import List, Dict, Any, Callable, Optional
 
-###### Blue
 from blue.operators.nl2llm_operator import *
 from blue.operators.nl2sql_operator import *
 from blue.operators.join_operator import *
@@ -107,21 +83,21 @@ Main task: {task}{error_mitigation}"""
 
 
 #NOT ENOUGH
-data_infos_base="""DB hr_matching_curation_v2 has table job_seeker_skills 
+data_infos_base="""DB default_db has table job_seeker_skills 
 job_seeker_skills has columns job_seeker_id, skills
-DB hr_matching_curation_v2 has table job_seeker_work_experiences 
+DB default_db has table job_seeker_work_experiences 
 job_seeker_work_experiences has columns duration_years, start_date, seqno, job_seeker_id, job_title, work_experience_text, end_date
-DB hr_matching_curation has table job_seeker 
+DB default_db has table job_seeker 
 job_seeker has columns job_seeker_id, education_level, skills
 DB postgres has table none 
 none has columns none"""
 
 # data_infos_butnotfounderror=
-data_infos_butno="""DB hr_matching_curation_v2 has table job_seeker_work_experiences
+data_infos_butno="""DB default_db has table job_seeker_work_experiences
 Table job_seeker_work_experiences has columns:job_title (categorical - 4 examples : senior cloud developer, cloud developer, cloud application developer, senior cloud security engineer),work_experience_text (free text - 1 example: "cloud developer, finsecure technologies, singapore\njanuary 2014 - march 2018  \n- designed and implemented cloud infrastructure solutions with a focus on security and compliance for banking applications.  \n- led initiatives to enhance data protection measures, resulting in improved customer trust and satisfaction.  \n- worked closely with regulatory bodies to ensure that cloud solutions met stringent compliance requirements.**"),start_date (date),end_date (date),duration_years (double precision),seqno (bigint),job_seeker_id (bigint)
-DB hr_matching_curation_v2 has table job_seeker_skills
+DB default_db has table job_seeker_skills
 Table job_seeker_skills has columns: skills (categorical - 4 most frequent: aws, azure, docker, kubernetes), job_seeker_id (bigint)
-DB hr_matching_curation_test has table job_seeker
+DB default_db has table job_seeker
 Table job_seeker has columns: education_level (categorical - 4 most frequent: bachelor, master), skills (free text - 1 example:".net, c#, java, sql, html, css, javascript, docker, kubernetes, aws, azure"),job_seeker_id (character varying)"""
 
 data_infos_supposedtofix="""Tables has columns:job_title (categorical - 4 examples : senior cloud developer, cloud developer, cloud application developer, senior cloud security engineer),work_experience_text (free text - 1 example: "cloud developer, finsecure technologies, singapore\njanuary 2014 - march 2018  \n- designed and implemented cloud infrastructure solutions with a focus on security and compliance for banking applications.  \n- led initiatives to enhance data protection measures, resulting in improved customer trust and satisfaction.  \n- worked closely with regulatory bodies to ensure that cloud solutions met stringent compliance requirements.**"),start_date (date),end_date (date),duration_years (double precision),seqno (bigint),job_seeker_id (bigint)
@@ -1657,7 +1633,7 @@ frozenset(['ROWWISE_NL2LLM','SMARTNL2SQL','NL2LLM']):"""[
 }
 ]"""}}}
 
-##STEP NB TOOL TASK PREVISOULY BEGAN BY Using 'job_seeker_work_experiences' table from hr_matching_curation_v2 DB, f...
+##STEP NB TOOL TASK PREVISOULY BEGAN BY Using 'job_seeker_work_experiences' table from default_db DB, f...
 additions={1:"""Your biggest issue is that you struggle to stay focused on the data available and tools purpose and usage. Often, you want to query information that is not available in the right format in the database, or try to use a tool that is not adapted because you assume previous steps that you have not completed. Mention this thinking explicitely in your reasoning for each tool to avoid this kind of issues.
            Pay attention to the data structure compared to the user question. It might be that additionnal processing through tools need to be done on database data to adapt to user question, for example to take into account different wordings or different granularities between the data and the actual question."""}
 
@@ -1685,10 +1661,4 @@ def get_plan(task,error_mitigation='',special_task={}, tools_list=['JOIN_2','SEL
 
 def get_plan_text(plan):
     return '\n'.join(["{}.{}(\"{}\")".format(elt['step_number'],elt['tool'],elt['tool_task']) for elt in plan[0]])
-
-if __name__ == "__main__":
-    plan=get_plan("Find the job titles that require good communication skills")
-    print(get_plan_text(plan))
-
-
 

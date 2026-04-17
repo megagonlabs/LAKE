@@ -4,11 +4,11 @@ import re
 import sys
 from typing import Any, Dict, List, Optional
 
+from demo_planners.config import DEFAULT_SERVICE_URL
 from demo_planners.nlmerge.pipeline import run_iterative
 
 
 DEFAULT_TOOLS = ['JOIN_2', 'SELECT', 'NL2LLM', 'ROWWISE_NL2LLM', 'NL2SQL', 'COUNT']
-DEFAULT_SERVICE_URL = "ws://localhost:8001"
 METHOD_INTERNAL_TO_PUBLIC = {
     "old": "single_shot_tree_planning_guided_inner_outer",
     "new": "single_shot_tree_planning_guided_outer_inner",
