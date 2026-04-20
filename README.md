@@ -97,11 +97,14 @@ This project is licensed under the terms in `LICENSE.txt`.
 If you use this repository, please cite the associated L.A.K.E. demo paper. Replace the placeholder below with the final camera-ready citation before publication.
 
 ```bibtex
-@misc{lake_demo_2026,
-  title        = {L.A.K.E.},
-  author       = {TODO},
-  year         = {2026},
-  note         = {Placeholder citation. Replace with the final published paper metadata before release.}
+@inproceedings{lake_demo_2026,
+  title     = {L.A.K.E.: Logic Agent for Knowledge Extraction in Data Planning},
+  author    = {Jean-Flavien Bussotti and Naoki Otani and Eser Kandogan},
+  booktitle = {Proceedings of the 2026 ACM Conference on AI and Agentic Systems (CAIS)},
+  year      = {2026},
+  publisher = {ACM},
+  address   = {San Jose, CA, USA},
+  note      = {System Demonstration}
 }
 ```
 
