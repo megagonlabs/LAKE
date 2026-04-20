@@ -14,10 +14,14 @@ import logging
 
 from demo_planners.config import (
     DEFAULT_DATA_REGISTRY_NAME,
+    DEFAULT_NL2SQL_COLLECTION,
+    DEFAULT_NL2SQL_DATABASE,
+    DEFAULT_NL2SQL_PROTOCOL,
     DEFAULT_PLATFORM_NAME,
     DEFAULT_SERVICE_URL,
     DEFAULT_SOURCE_NAME,
 )
+from demo_planners.nl2sql_defaults import apply_default_database_nl2sql_attributes
 
 import re  # If not already imported outside the function
 
@@ -746,11 +750,17 @@ Returns the rows from the table matching the query, including its columns (field
 ! Bad reasoning example : I will use data from the earlier step XX to obtain our result. Correct behavior : Use another tool.""",'advanced':"""""",'linking':"""
 attributes:
 -question: what we want to obtain from the query
--protocol: one of ["postgres", "mysql"]
--database: choose between postgres or any other
--collection: choose between public or any other collection
+-protocol: default "%s"; supported values include ["postgres", "mysql"]
+-source: use the configured datasource name, currently "%s"
+-database: default "%s"
+-collection: default "%s"
 -context : can be empty, used to provide additionnal details
-Returns the rows from the table matching the query, including its columns (fields) names."""},
+Returns the rows from the table matching the query, including its columns (fields) names.""" % (
+    DEFAULT_NL2SQL_PROTOCOL,
+    DEFAULT_SOURCE_NAME,
+    DEFAULT_NL2SQL_DATABASE,
+    DEFAULT_NL2SQL_COLLECTION,
+)},
                          'ROWWISE_NL2LLM':{'basic':"""Given a natural language query, fetch open-domain knowledge from LLM.
 Returns the input table augmented with new columns attr_names containing LLM result of question attribute on each row.""",'advanced':"""""",
                        'linking':"""attributes:
@@ -851,12 +861,17 @@ operators_description_merge = {'NL2SQL':{'basic':"""Convert a natural language q
 Returns the rows from the table matching the query, including its columns (fields) names. Be sure that the columns you are using belong to a single table.""",'advanced':"""""",'linking':"""
 attributes:
 -question: what we want to obtain from the query
--protocol: one of ["postgres", "mysql"]
--source: one of ["default"]
--database: choose between postgres or any other
--collection: choose between public or any other collection
+-protocol: default "%s"; supported values include ["postgres", "mysql"]
+-source: use the configured datasource name, currently "%s"
+-database: default "%s"
+-collection: default "%s"
 -context : can be empty, used to provide additionnal details
-Returns the rows from the table matching the query, including its columns (fields) names."""},
+Returns the rows from the table matching the query, including its columns (fields) names.""" % (
+    DEFAULT_NL2SQL_PROTOCOL,
+    DEFAULT_SOURCE_NAME,
+    DEFAULT_NL2SQL_DATABASE,
+    DEFAULT_NL2SQL_COLLECTION,
+)},
 # 'SMARTNL2SQL':{'basic':"""Convert a natural language question into a SQL query to run on a database, or on the inputs.
 #     If you want to run on a database, provide empty list as inputs [] - still providing the attributes - the database will be queried.
 #     Returns the rows from the table matching the query, including its columns (fields) names. 
@@ -1279,10 +1294,7 @@ def get_custom_NL2SQL_agent(inp,attributes,properties):
     
     if attributes['runOn']=='database':#inp==[[]] or inp==[] or len(inp)==0 or len(inp[0])==0:
         logging.critical('MAGICNL2SQL: NL2SQL on database')
-        attributes['source']=DEFAULT_SOURCE_NAME
-        attributes['protocol']='postgres'
-        attributes['database']='postgres'
-        attributes['collection']='public'
+        attributes = apply_default_database_nl2sql_attributes(attributes)
         return call_with_retry(nl2sql_operator_function,input_data, attributes, properties)
     elif attributes['runOn']=='input':
 
@@ -1389,6 +1401,7 @@ def get_standard_NL2SQL_agent(inp,attributes,properties):
     # logging.critical('DEBUG attributes:'+json.dumps(attributes))
     _apply_default_blue_runtime(properties)
     properties['service_url'] = DEFAULT_SERVICE_URL
+    attributes = apply_default_database_nl2sql_attributes(attributes)
     return call_with_retry(nl2sql_operator_function,input_data, attributes, properties)
 
 
@@ -1721,5 +1734,3 @@ def build_nested_plan(raw_plan, ancestor_dico, operators_linking):
     # build plan tree (handle multiple final outputs if any)
     plan_tree = [build_step(f) for f in final_steps]
     return plan_tree[0] if len(plan_tree) == 1 else plan_tree
-
-

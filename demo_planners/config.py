@@ -6,6 +6,9 @@ environment configuration.
 """
 
 DEFAULT_SERVICE_URL = "ws://localhost:8001"
-DEFAULT_PLATFORM_NAME = "default"
+DEFAULT_PLATFORM_NAME = "jflavien"
 DEFAULT_DATA_REGISTRY_NAME = "default"
-DEFAULT_SOURCE_NAME = "default"
+DEFAULT_SOURCE_NAME = "postgres_example"
+DEFAULT_NL2SQL_PROTOCOL = "postgres"
+DEFAULT_NL2SQL_DATABASE = "postgres"
+DEFAULT_NL2SQL_COLLECTION = "public"

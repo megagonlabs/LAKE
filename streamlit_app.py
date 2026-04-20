@@ -1,4 +1,5 @@
 import json
+import sys
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -12,6 +13,7 @@ from demo_pipeline_runner import (
     METHOD_LABELS,
     run_demo_question,
 )
+from streamlit_app_support import in_streamlit_context, normalize_payload
 
 # Two common tool presets used across this repo.
 TOOL_SET_SMART = ["JOIN_2", "NL2LLM", "ROWWISE_NL2LLM", "SMARTNL2SQL"]
@@ -165,131 +167,155 @@ def _render_graph(root: DagNode) -> Optional[str]:
     return None
 
 
-st.set_page_config(page_title="L.A.K.E.", layout="wide")
-st.title("L.A.K.E.")
+def main() -> None:
+    if not in_streamlit_context():
+        print("This file is a Streamlit app. Run `streamlit run streamlit_app.py`.", file=sys.stderr)
+        return
 
-with st.sidebar:
-    st.header("Run")
-    service_url = st.text_input("Service URL", value=DEFAULT_SERVICE_URL)
-    method = st.selectbox(
-        "Planner variant",
-        METHOD_CHOICES,
-        index=METHOD_CHOICES.index(DEFAULT_METHOD),
-        format_func=lambda m: METHOD_LABELS.get(m, m),
-    )
-    tools = st.multiselect("Tools", ALL_TOOLS, default=TOOL_SET_DEFAULT)
-    question = st.text_area(
-        "Question",
-        value="Give me 10 available jobs and for each of them, say if they concern restaurant",
-        height=120,
-    )
-    run_clicked = st.button("Run", type="primary")
+    st.set_page_config(page_title="L.A.K.E.", layout="wide")
+    st.title("L.A.K.E.")
 
-if run_clicked:
-    try:
-        with st.spinner("Running pipeline..."):
-            payload = run_demo_question(
+    with st.sidebar:
+        st.header("Run")
+        service_url = st.text_input("Service URL", value=DEFAULT_SERVICE_URL)
+        method = st.selectbox(
+            "Planner variant",
+            METHOD_CHOICES,
+            index=METHOD_CHOICES.index(DEFAULT_METHOD),
+            format_func=lambda m: METHOD_LABELS.get(m, m),
+        )
+        tools = st.multiselect("Tools", ALL_TOOLS, default=TOOL_SET_DEFAULT)
+        question = st.text_area(
+            "Question",
+            value="Give me 10 available jobs and for each of them, say if they concern restaurant",
+            height=120,
+        )
+        run_clicked = st.button("Run", type="primary")
+
+    if run_clicked:
+        try:
+            with st.spinner("Running pipeline..."):
+                raw_payload = run_demo_question(
+                    question=question,
+                    tools_list=tools,
+                    method=method,
+                    service_url=service_url,
+                )
+            payload = normalize_payload(
+                raw_payload,
                 question=question,
-                tools_list=tools,
                 method=method,
+                tools=tools,
                 service_url=service_url,
+                method_labels=METHOD_LABELS,
             )
-    except Exception as exc:  # noqa: BLE001
-        payload = {
-            "question": question,
-            "method": method,
-            "method_label": METHOD_LABELS.get(method, method),
-            "tools": tools,
-            "service_url": service_url,
-            "final_answer": None,
-            "steps": [],
-            "plan_dag": None,
-            "error": str(exc),
-        }
+        except Exception as exc:  # noqa: BLE001
+            payload = normalize_payload(
+                {"error": str(exc)},
+                question=question,
+                method=method,
+                tools=tools,
+                service_url=service_url,
+                method_labels=METHOD_LABELS,
+            )
+        st.session_state["last_payload"] = payload
+
+    raw_payload = st.session_state.get("last_payload")
+    if raw_payload is None:
+        st.caption("Run a question to see the plan DAG and step outputs.")
+        return
+
+    payload = normalize_payload(
+        raw_payload,
+        question=question,
+        method=method,
+        tools=tools,
+        service_url=service_url,
+        method_labels=METHOD_LABELS,
+    )
     st.session_state["last_payload"] = payload
 
-payload = st.session_state.get("last_payload")
-if not payload:
-    st.caption("Run a question to see the plan DAG and step outputs.")
-    st.stop()
+    error_text = payload.get("error") or ""
+    if error_text:
+        st.error(error_text)
 
-error_text = payload.get("error") or ""
-if error_text:
-    st.error(error_text)
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        _render_result(payload.get("final_answer"), label="Final Answer")
+    with col_b:
+        st.subheader("Run Info")
+        st.code(
+            json.dumps(
+                {
+                    "method": payload.get("method_label") or payload.get("method"),
+                    "tools": payload.get("tools"),
+                    "service_url": payload.get("service_url"),
+                },
+                indent=2,
+            ),
+            language="json",
+        )
 
-col_a, col_b = st.columns([1, 1])
-with col_a:
-    _render_result(payload.get("final_answer"), label="Final Answer")
-with col_b:
-    st.subheader("Run Info")
-    st.code(
-        json.dumps(
-            {
-                "method": payload.get("method_label") or payload.get("method"),
-                "tools": payload.get("tools"),
-                "service_url": payload.get("service_url"),
-            },
-            indent=2,
-        ),
-        language="json",
+    st.divider()
+
+    plan_root = _parse_plan_dag(payload.get("plan_dag"))
+    steps: List[Dict[str, Any]] = payload.get("steps") or []
+
+    if not plan_root:
+        st.warning("No plan DAG available for this run.")
+        return
+
+    st.subheader("Operator Graph")
+    clicked_node_id = _render_graph(plan_root)
+
+    node_list = _postorder_nodes(plan_root)
+    id_to_node = {n.node_id: n for n in node_list}
+
+    # Steps in payload are in postorder with 1-based index.
+    id_to_step_index: Dict[str, int] = {}
+    for idx, n in enumerate(node_list, start=1):
+        id_to_step_index[n.node_id] = idx
+
+    st.subheader("Pipeline Steps")
+    if node_list:
+        items = []
+        for idx, n in enumerate(node_list, start=1):
+            text = f"{idx}. {n.tool}"
+            if idx == 1:
+                text = f"<b>{text}</b>"
+            if idx == len(node_list):
+                text = f"<span style='color:#2ecc71'>{text}</span>"
+            items.append(f"<li>{text}</li>")
+        st.markdown("<ol>" + "".join(items) + "</ol>", unsafe_allow_html=True)
+
+    st.subheader("Operator Details")
+
+    default_selected = clicked_node_id or node_list[-1].node_id
+    node_ids = [n.node_id for n in node_list]
+    selected_node_id = st.selectbox(
+        "Select operator",
+        options=node_ids,
+        format_func=lambda nid: f"{id_to_step_index.get(nid, '?')}. {id_to_node[nid].tool}",
+        index=node_ids.index(default_selected),
     )
 
-st.divider()
+    selected_node = id_to_node[selected_node_id]
+    step_idx = id_to_step_index.get(selected_node_id)
 
-plan_root = _parse_plan_dag(payload.get("plan_dag"))
-steps: List[Dict[str, Any]] = payload.get("steps") or []
+    details_cols = st.columns([1, 2])
+    with details_cols[0]:
+        st.caption("Attributes")
+        st.code(json.dumps(selected_node.attrs, indent=2, default=str), language="json")
+    with details_cols[1]:
+        st.caption("Step Output")
+        step_result: Any = None
+        if isinstance(step_idx, int) and 1 <= step_idx <= len(steps):
+            step_result = steps[step_idx - 1].get("result")
+        _render_result(step_result, label=f"Step {step_idx} Output" if step_idx else "Output")
 
-if not plan_root:
-    st.warning("No plan DAG available for this run.")
-    st.stop()
+    with st.expander("All Steps (raw)"):
+        st.code(json.dumps(steps, indent=2, default=str), language="json")
 
-st.subheader("Operator Graph")
-clicked_node_id = _render_graph(plan_root)
 
-node_list = _postorder_nodes(plan_root)
-id_to_node = {n.node_id: n for n in node_list}
-
-# Steps in payload are in postorder with 1-based index.
-id_to_step_index: Dict[str, int] = {}
-for idx, n in enumerate(node_list, start=1):
-    id_to_step_index[n.node_id] = idx
-
-st.subheader("Pipeline Steps")
-if node_list:
-    items = []
-    for idx, n in enumerate(node_list, start=1):
-        text = f"{idx}. {n.tool}"
-        if idx == 1:
-            text = f"<b>{text}</b>"
-        if idx == len(node_list):
-            text = f"<span style='color:#2ecc71'>{text}</span>"
-        items.append(f"<li>{text}</li>")
-    st.markdown("<ol>" + "".join(items) + "</ol>", unsafe_allow_html=True)
-
-st.subheader("Operator Details")
-
-default_selected = clicked_node_id or node_list[-1].node_id
-node_ids = [n.node_id for n in node_list]
-selected_node_id = st.selectbox(
-    "Select operator",
-    options=node_ids,
-    format_func=lambda nid: f"{id_to_step_index.get(nid, '?')}. {id_to_node[nid].tool}",
-    index=node_ids.index(default_selected),
-)
-
-selected_node = id_to_node[selected_node_id]
-step_idx = id_to_step_index.get(selected_node_id)
-
-details_cols = st.columns([1, 2])
-with details_cols[0]:
-    st.caption("Attributes")
-    st.code(json.dumps(selected_node.attrs, indent=2, default=str), language="json")
-with details_cols[1]:
-    st.caption("Step Output")
-    step_result: Any = None
-    if isinstance(step_idx, int) and 1 <= step_idx <= len(steps):
-        step_result = steps[step_idx - 1].get("result")
-    _render_result(step_result, label=f"Step {step_idx} Output" if step_idx else "Output")
-
-with st.expander("All Steps (raw)"):
-    st.code(json.dumps(steps, indent=2, default=str), language="json")
+if __name__ == "__main__":
+    main()

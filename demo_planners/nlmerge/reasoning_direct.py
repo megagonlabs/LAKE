@@ -51,7 +51,7 @@ def run_planning(user_question, previous_rounds_text=[],tools_list=['JOIN_2', 'S
                 "protocol": "postgres",
                 "database": "postgres",
                 "collection": "public",
-                "source": "default"
+                "source": "__DEFAULT_SOURCE__"
               }
             }
           ],
@@ -70,7 +70,7 @@ def run_planning(user_question, previous_rounds_text=[],tools_list=['JOIN_2', 'S
         "eps": 0.0
       }
     }
-    """,frozenset(['SMARTNL2SQL','ROWWISE_NL2LLM']):"""{
+    """.replace("__DEFAULT_SOURCE__", DEFAULT_SOURCE_NAME),frozenset(['SMARTNL2SQL','ROWWISE_NL2LLM']):"""{
       "tool": "SMARTNL2SQL",
       "inputs": [
         {
@@ -113,4 +113,3 @@ def run_planning(user_question, previous_rounds_text=[],tools_list=['JOIN_2', 'S
     system_prompt=system_prompt.format(available_tools=available_tools,data=data_infos,example_task=example_task,example_plan=example_plan)
     return get_answer_gpt_advanced(system_prompt, [user_question]+previous_rounds_text)
     
-
